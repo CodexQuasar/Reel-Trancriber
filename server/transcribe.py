@@ -92,13 +92,15 @@ def main():
         kwargs = {}
 
         # Handle language
-        language = language.strip() if language else "auto"
-        valid_languages = whisper.tokenizer.LANGUAGES.keys()
+        language_map = {v.lower(): k for k, v in whisper.tokenizer.LANGUAGES.items()}
+
         if language.lower() != "auto":
-            if language.lower() not in valid_languages:
+            lang_key = language.lower()
+            if lang_key not in language_map:
                 print(json.dumps({"error": f"Unsupported language: {language}"}))
                 sys.exit(1)
-            kwargs["language"] = language.lower()
+            kwargs["language"] = lang_key
+
 
         # Transcribe
         result = model.transcribe(mp3_path, **kwargs)

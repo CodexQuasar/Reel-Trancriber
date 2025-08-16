@@ -33,13 +33,6 @@ export default function App() {
     }
   };
 
-  const copyToClipboard = () => {
-    if (result?.text) {
-      navigator.clipboard.writeText(result.text);
-      alert("Copied to clipboard!");
-    }
-  };
-
   return (
     <div
       style={{
@@ -100,7 +93,7 @@ export default function App() {
             borderRadius: "8px",
             border: "none",
             fontSize: "1rem",
-            background: "linear-gradient(to right, #e3166fff, #0f5ddbff)",
+            background: "linear-gradient(to right, #ff7e5f, #feb47b)",
             color: "#fff",
             fontWeight: "bold",
             cursor: loading ? "not-allowed" : "pointer",
@@ -122,21 +115,14 @@ export default function App() {
             gap: "0.5rem",
           }}
         >
-          {/* Animated bouncing dots */}
-          <div style={{ display: "flex", gap: "4px" }}>
-            {[...Array(3)].map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  width: "10px",
-                  height: "10px",
-                  backgroundColor: "#fff",
-                  borderRadius: "50%",
-                  animation: `bounce 0.6s infinite ${i * 0.2}s`,
-                }}
-              ></div>
-            ))}
-          </div>
+          <div className="spinner" style={{
+            width: "20px",
+            height: "20px",
+            border: "3px solid #fff",
+            borderTop: "3px solid transparent",
+            borderRadius: "50%",
+            animation: "spin 1s linear infinite"
+          }}></div>
           Transcription in progress...
         </div>
       )}
@@ -166,9 +152,6 @@ export default function App() {
             maxWidth: 500,
             backdropFilter: "blur(10px)",
             boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "0.5rem",
           }}
         >
           <h2 style={{ marginBottom: "0.5rem", color: "#fff" }}>Transcription Result</h2>
@@ -177,33 +160,18 @@ export default function App() {
           <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.6, marginTop: "0.3rem" }}>
             {result.text}
           </div>
-          <button
-            onClick={copyToClipboard}
-            style={{
-              alignSelf: "flex-end",
-              padding: "0.5rem 1rem",
-              borderRadius: "6px",
-              border: "none",
-              backgroundColor: "#00c3ff",
-              color: "#000",
-              fontWeight: "bold",
-              cursor: "pointer",
-              marginTop: "0.5rem",
-              transition: "0.2s",
-            }}
-          >
-            Copy
-          </button>
         </div>
       )}
 
-      {/* Animations */}
-      <style>{`
-        @keyframes bounce {
-          0%, 80%, 100% { transform: scale(0); }
-          40% { transform: scale(1); }
-        }
-      `}</style>
+      {/* Spinner animation */}
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg);}
+            100% { transform: rotate(360deg);}
+          }
+        `}
+      </style>
     </div>
   );
 }

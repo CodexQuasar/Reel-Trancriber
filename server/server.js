@@ -8,69 +8,58 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-
 app.use(cors());
+app.use(express.json({ limit: "500mb" }));
 
-app.use(express.json({ limit: "50mb" }));
+app.post("/api/transcribe", (req, res) => {
+  const { url, language = "english" } = req.body || {};
+  if (!url || !/^https?:\/\//i.test(url)) {
+    return res.status(400).json({ error: "Please provide a valid URL." });
+  }
 
-app.use(express.static(path.join(__dirname, "client")));
+  const pythonPath = "C:\\Users\\adity\\AppData\\Local\\Programs\\Python\\Python313\\python.exe";
+  const scriptPath = path.join(__dirname, "transcribe.py");
 
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "client", "index.html"));
-});
-app.post("/api/transcribe", async (req, res) => {
-  try {
-    const { url, language = "auto" } = req.body || {};
-    if (!url || !/^https?:\/\//i.test(url)) {
-      return res.status(400).json({ error: "Please provide a valid URL." });
+  const child = spawn(pythonPath, [scriptPath, url, language], {
+    env: { ...process.env, PYTHONUNBUFFERED: "1" },
+    cwd: __dirname,
+  });
+
+  let stdout = "";
+  let stderr = "";
+
+  child.stdout.on("data", (data) => {
+    const msg = data.toString();
+    stdout += msg;
+    console.log("📄 STDOUT:", msg.trim());
+  });
+
+  child.stderr.on("data", (data) => {
+    const msg = data.toString();
+    stderr += msg;
+    console.log("⚠️ STDERR:", msg.trim());
+  });
+
+  child.on("close", (code) => {
+    if (code !== 0) {
+      return res.status(500).json({
+        error: `Transcription failed (code ${code})`,
+        stdout,
+        stderr,
+      });
     }
 
-    // Use raw string paths or double backslashes for Windows
-    const pythonPath = path.join(__dirname, ".venv", "Scripts", "python.exe"); // Use venv
-    const scriptPath = path.join(__dirname, "transcribe.py");
-
-    const child = spawn(pythonPath, [scriptPath, url, language], {
-      env: { ...process.env, PYTHONUNBUFFERED: "1", PYTHONUTF8: "1" },
-      cwd: __dirname,
-      shell: true, // important on Windows to resolve paths
-    });
-
-    let stdout = "";
-    let stderr = "";
-
-    child.stdout.on("data", (d) => (stdout += d.toString()));
-    child.stderr.on("data", (d) => (stderr += d.toString()));
-
-    child.on("error", (err) => {
-      return res.status(500).json({ error: "Failed to start Python: " + err.message });
-    });
-
-    child.on("close", (code) => {
-       console.log("Python exited with code:", code);
-       console.log("stdout:", stdout);
-       console.log("stderr:", stderr);
-
-      if (code !== 0) {
-        return res.status(500).json({
-          error: `Transcription failed (code ${code})`,
-          stderr,
-          stdout,
-        });
-      }
-      try {
-        const data = JSON.parse(stdout);
-        return res.json(data);
-      } catch (e) {
-        return res.status(500).json({
-          error: "Invalid JSON from Python",
-          stdout,
-          stderr,
-        });
-      }
-    });
-  } catch (err) {
-    return res.status(500).json({ error: err.message || "Unknown server error" });
-  }
+    try {
+      const data = JSON.parse(stdout); // stdout should be pure JSON
+      res.json(data);
+    } catch (e) {
+      res.status(500).json({
+        error: "Invalid JSON from Python",
+        stdout,
+        stderr,
+      });
+    }
+  });
 });
 
-app.listen(5000, () => console.log("Server running on http://localhost:5000"));
+app.listen(5000, () => console.log("🚀 Server running at http://localhost:5000"));
